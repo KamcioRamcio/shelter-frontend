@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API_BASE_URL from '../apiConfig';
+import API_BASE_URL from '../api/apiConfig.ts';
 
 
 const Login: React.FC = () => {
@@ -29,7 +29,6 @@ const Login: React.FC = () => {
             } else {
                 setError('Login failed: ' + JSON.stringify(data));
             }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
             setError('Network error occurred');
         }

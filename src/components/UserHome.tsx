@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, PanInfo } from 'framer-motion';
-import API_BASE_URL from '../apiConfig';
+import API_BASE_URL from '../api/apiConfig.ts';
 
 interface Pet {
     id: number;
@@ -15,13 +15,20 @@ interface Pet {
     shelter_distance: number;
 }
 
+interface ProfilePhoto {
+    id: number;
+    photo: string;
+    is_profile_photo: boolean;
+    user: number;
+}
+
 interface UserInfo {
     first_name: string;
     last_name: string;
     email: string;
     location: string;
     phone_number: string;
-    profile_image?: string;
+    photos?: ProfilePhoto[];
     preferences?: {
         species: string[];
         max_age?: number;
@@ -36,16 +43,18 @@ const UserHome: React.FC = () => {
     // const [showMenu, setShowMenu] = useState(false);
     const navigate = useNavigate();
     const swipeCardRef = useRef<HTMLDivElement>(null);
+    const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+
 
     useEffect(() => {
         fetchUserInfo();
-        fetchPets();
+        // fetchPets();
     }, []);
 
     const fetchUserInfo = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/users/profile`, {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE_URL}/profile/user/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -61,7 +70,7 @@ const UserHome: React.FC = () => {
 
     const fetchPets = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('access_token');
             const response = await fetch(`${API_BASE_URL}/pets/matches`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -111,17 +120,52 @@ const UserHome: React.FC = () => {
 
     const currentPet = pets[currentPetIndex];
 
+    const handlePhotoClick = () => {
+        setIsPhotoModalOpen(true);
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 flex">
             {/* User Widget - Left Sidebar */}
             <div className="w-1/4 bg-white shadow-lg p-6 m-4 rounded-2xl">
                 <div className="flex flex-col items-center">
                     <div className="w-32 h-32 rounded-full overflow-hidden mb-4">
-                        <img
-                            src={userInfo?.profile_image || '/default-avatar.png'}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                        />
+                        <button
+                            onClick={handlePhotoClick}
+                            className="w-32 h-32 rounded-full overflow-hidden mb-4 hover:opacity-90 transition-opacity"
+                        >
+                            <img
+                                src={userInfo?.photos?.find(photo => photo.is_profile_photo)?.photo || '/default-avatar.png'}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                            />
+                        </button>
+                        {/*Photos Showdown*/}
+                        {isPhotoModalOpen && (
+                            <div className="fixed inset-0 bg-opacity-75 flex items-center justify-center bg-transparent">
+                                <div className="bg-white rounded-lg shadow-lg p-6">
+                                    <button
+                                        onClick={() => setIsPhotoModalOpen(false)}
+                                        className="absolute top-72 right-72 m-4 text-gray-600 hover:text-gray-800"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                                                  d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                    <div className="flex space-x-4">
+                                        {userInfo?.photos?.map(photo => (
+                                            <img
+                                                key={photo.id}
+                                                src={photo.photo}
+                                                alt="Profile"
+                                                className="w-32 h-32 object-cover rounded-lg"
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <h2 className="text-2xl font-bold text-gray-800">
                         {userInfo?.first_name} {userInfo?.last_name}
@@ -130,7 +174,7 @@ const UserHome: React.FC = () => {
 
                     <div className="w-full space-y-4">
                         <button
-                            onClick={() => navigate('/preferences')}
+                            onClick={() => navigate('/profile-customize')}
                             className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 py-2 px-4 rounded-lg flex items-center justify-center"
                         >
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

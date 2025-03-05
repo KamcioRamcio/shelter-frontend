@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import API_BASE_URL from '../apiConfig';
+import API_BASE_URL from '../api/apiConfig.ts';
 
 interface Params extends Record<string, string | undefined> {
     token?: string;

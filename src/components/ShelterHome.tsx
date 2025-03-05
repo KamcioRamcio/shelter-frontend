@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API_BASE_URL from '../apiConfig';
+import API_BASE_URL from '../api/apiConfig.ts';
+
+interface PetImages {
+    id: number;
+    image: string;
+    is_main_image: boolean;
+}
 
 interface Pet {
     id: number;
@@ -8,17 +14,17 @@ interface Pet {
     species: string;
     breed: string;
     age: number;
-    image_url: string;
+    images: PetImages[];
     status: string;
 }
 
 interface ShelterInfo {
-    shelter_name: string;
+    name: string;
     address: string;
     city: string;
     state: string;
-    zipcode: string;
-    phone_number: string;
+    zip_code: string;
+    phone: string;
     email: string;
 }
 
@@ -34,25 +40,24 @@ const ShelterHome: React.FC = () => {
 
     const fetchShelterInfo = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/shelters/profile`, {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE_URL}/shelters/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
             if (response.ok) {
                 const data = await response.json();
-                setShelterInfo(data);
+                setShelterInfo(data[0]);
             }
         } catch (error) {
             console.error('Error fetching shelter info:', error);
         }
     };
-
     const fetchShelterPets = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/shelters/pets`, {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE_URL}/shelters/pets/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -72,10 +77,10 @@ const ShelterHome: React.FC = () => {
             <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-2xl font-bold text-gray-800">
-                        {shelterInfo?.shelter_name}
+                        {shelterInfo?.name}
                     </h1>
                     <button
-                        onClick={() => navigate('/settings')}
+                        onClick={() => navigate('/shelter-profile-customize')}
                         className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md flex items-center"
                     >
                         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,8 +99,8 @@ const ShelterHome: React.FC = () => {
                         <p><span className="font-semibold">State:</span> {shelterInfo?.state}</p>
                     </div>
                     <div>
-                        <p><span className="font-semibold">Zip Code:</span> {shelterInfo?.zipcode}</p>
-                        <p><span className="font-semibold">Phone:</span> {shelterInfo?.phone_number}</p>
+                        <p><span className="font-semibold">Zip Code:</span> {shelterInfo?.zip_code}</p>
+                        <p><span className="font-semibold">Phone:</span> {shelterInfo?.phone}</p>
                         <p><span className="font-semibold">Email:</span> {shelterInfo?.email}</p>
                     </div>
                 </div>
@@ -105,7 +110,7 @@ const ShelterHome: React.FC = () => {
             <div className="mb-6 flex justify-between items-center">
                 <h2 className="text-xl font-bold text-gray-800">Our Pets</h2>
                 <button
-                    onClick={() => navigate('/add-pet')}
+                    onClick={() => navigate('/shelter/add-pet')}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
                 >
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,7 +126,7 @@ const ShelterHome: React.FC = () => {
                     <div key={pet.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                         <div className="h-48 overflow-hidden">
                             <img
-                                src={pet.image_url || '/default-pet-image.jpg'}
+                                src={pet.images.find(img => img.is_main_image)?.image || pet.images[0]?.image || '/default-pet-image.jpg'}
                                 alt={pet.name}
                                 className="w-full h-full object-cover"
                             />

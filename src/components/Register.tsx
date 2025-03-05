@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import API_BASE_URL from '../apiConfig';
+import API_BASE_URL from '../api/apiConfig.ts';
 
 const Register: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -38,7 +38,7 @@ const Register: React.FC = () => {
 
     const handleSubmitShelter = async (e: React.FormEvent) => {
         e.preventDefault();
-        const response = await fetch(`${API_BASE_URL}/users/shelters/register/`, {
+        const response = await fetch(`${API_BASE_URL}/shelters/register/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
