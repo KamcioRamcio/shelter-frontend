@@ -71,6 +71,23 @@ const ShelterHome: React.FC = () => {
         }
     };
 
+    const handleDelete = async (id: number) => {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE_URL}/shelters/pets/${id}/`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                setPets(prevPets => prevPets.filter(pet => pet.id !== id));
+            }
+        } catch (error) {
+            console.error('Error deleting pet:', error);
+        }
+    }
+
     return (
         <div className="min-h-screen bg-gray-100 p-6">
             {/* Shelter Info Widget */}
@@ -125,6 +142,7 @@ const ShelterHome: React.FC = () => {
                 {pets.map((pet) => (
                     <div key={pet.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                         <div className="h-48 overflow-hidden">
+
                             <img
                                 src={pet.images.find(img => img.is_main_image)?.image || pet.images[0]?.image || '/default-pet-image.jpg'}
                                 alt={pet.name}
@@ -152,6 +170,12 @@ const ShelterHome: React.FC = () => {
                                 className="mt-4 w-full bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-md text-sm font-medium"
                             >
                                 View Details
+                            </button>
+                            <button
+                                onClick={() => handleDelete(pet.id)}
+                                className="mt-2 w-full bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-md text-sm font-medium"
+                            >
+                                Delete Pet
                             </button>
                         </div>
                     </div>

@@ -1,7 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, PanInfo } from 'framer-motion';
 import API_BASE_URL from '../api/apiConfig.ts';
+
+interface PetImage{
+    id: number;
+    image: string;
+    is_main_image: boolean;
+}
 
 interface Pet {
     id: number;
@@ -9,7 +15,7 @@ interface Pet {
     species: string;
     breed: string;
     age: number;
-    image_url: string;
+    images: PetImage[];
     description: string;
     shelter_name: string;
     shelter_distance: number;
@@ -40,62 +46,104 @@ const UserHome: React.FC = () => {
     const [pets, setPets] = useState<Pet[]>([]);
     const [currentPetIndex, setCurrentPetIndex] = useState(0);
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-    // const [showMenu, setShowMenu] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadedAllPets, setLoadedAllPets] = useState(false);
     const navigate = useNavigate();
     const swipeCardRef = useRef<HTMLDivElement>(null);
     const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
-
+    const batchSize = 3;
+    const loadMoreThreshold = 2;
 
     useEffect(() => {
         fetchUserInfo();
-        // fetchPets();
+        fetchPets();
     }, []);
 
     const fetchUserInfo = async () => {
         try {
             const token = localStorage.getItem('access_token');
             const response = await fetch(`${API_BASE_URL}/profile/user/`, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
             });
+
             if (response.ok) {
                 const data = await response.json();
                 setUserInfo(data);
+            } else {
+                console.error('Failed to fetch user info:', response.status);
             }
         } catch (error) {
             console.error('Error fetching user info:', error);
         }
     };
 
-    const fetchPets = async () => {
+    const fetchPets = useCallback(async () => {
+        if (isLoading || loadedAllPets) return;
+
+        setIsLoading(true);
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`${API_BASE_URL}/pets/matches`, {
+            const offset = pets.length;
+
+            const response = await fetch(`${API_BASE_URL}/shelters/pets/all/?limit=${batchSize}&offset=${offset}`, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
             });
+
             if (response.ok) {
                 const data = await response.json();
-                setPets(data);
+                if (data.length === 0) {
+                    setLoadedAllPets(true);
+                } else {
+                    setPets(prevPets => [...prevPets, ...data]);
+                }
+            } else {
+                console.error('Failed to fetch pets:', response.status);
             }
         } catch (error) {
             console.error('Error fetching pets:', error);
+        } finally {
+            setIsLoading(false);
         }
-    };
+    }, [pets.length, isLoading, loadedAllPets]);
+
+    useEffect(() => {
+        if (!loadedAllPets && !isLoading && pets.length - currentPetIndex <= loadMoreThreshold) {
+            fetchPets();
+        }
+    }, [currentPetIndex, pets.length, loadedAllPets, isLoading, fetchPets]);
 
     const handleSwipe = async (petId: number, liked: boolean) => {
         try {
-            const token = localStorage.getItem('token');
-            await fetch(`${API_BASE_URL}/pets/${petId}/swipe`, {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE_URL}/swipes/user/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ liked }),
+                credentials: 'include',
+                body: JSON.stringify({
+                    pet: petId,
+                    liked: liked
+                })
             });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Swipe error:', errorData);
+                throw new Error(`Swipe failed: ${JSON.stringify(errorData)}`);
+            }
+
             setCurrentPetIndex(prev => prev + 1);
         } catch (error) {
             console.error('Error recording swipe:', error);
@@ -106,6 +154,8 @@ const UserHome: React.FC = () => {
         const threshold = 100;
         const pet = pets[currentPetIndex];
 
+        if (!pet) return;
+
         if (info.offset.x > threshold) {
             handleSwipe(pet.id, true);
         } else if (info.offset.x < -threshold) {
@@ -114,7 +164,7 @@ const UserHome: React.FC = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
+        localStorage.removeItem('access_token');
         navigate('/login');
     };
 
@@ -122,7 +172,7 @@ const UserHome: React.FC = () => {
 
     const handlePhotoClick = () => {
         setIsPhotoModalOpen(true);
-    }
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 flex">
@@ -220,7 +270,7 @@ const UserHome: React.FC = () => {
                         className="w-[480px] h-[640px] bg-white rounded-3xl shadow-xl overflow-hidden relative"
                     >
                         <img
-                            src={currentPet.image_url}
+                            src={currentPet.images.find(img => img.is_main_image)?.image || currentPet.images[0]?.image || '/default-pet-image.jpg'}
                             alt={currentPet.name}
                             className="w-full h-full object-cover"
                         />
@@ -239,6 +289,10 @@ const UserHome: React.FC = () => {
                             </div>
                         </div>
                     </motion.div>
+                ) : isLoading ? (
+                    <div className="text-center text-gray-600">
+                        <p className="text-2xl mb-4">Loading pets...</p>
+                    </div>
                 ) : (
                     <div className="text-center text-gray-600">
                         <p className="text-2xl mb-4">No more pets to show!</p>

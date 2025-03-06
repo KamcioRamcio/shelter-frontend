@@ -10,6 +10,7 @@ import AuthGuard from "./components/AuthGuard.tsx";
 import ProfileCustomize from "./components/ProfileCustomize.tsx";
 import ShelterProfileCustomize from "./components/ShelterProfileCustomize.tsx";
 import AddPet from './components/AddPet';
+import PetDetails from './components/PetDetails';
 
 
 const App: React.FC = () => {
@@ -22,6 +23,7 @@ const App: React.FC = () => {
                 <Route path='/profile-customize' element={<ProfileCustomize />} />
                 <Route path='/shelter-profile-customize' element={<ShelterProfileCustomize />} />
                 <Route path="/shelter/add-pet" element={<AddPet />} />
+                <Route path="/pets/:id" element={<PetDetails />} />
 
                 <Route path="/profile/customize" element={
                     <AuthGuard>
